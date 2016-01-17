@@ -59,11 +59,16 @@ fn render(parts: &Vec<String>, permutations: &Vec<Vec<String>>) -> Vec<String>
 }
 
 // Execute a list of commands
-fn execute(commands: &Vec<String>)
+fn execute(commands: &Vec<String>, dry_run: bool)
 {
     for command in commands
     {
         println!("vex: {}", command);
+
+        if dry_run
+        {
+            continue;
+        }
 
         let success =
             Command::new("bash")
@@ -85,22 +90,80 @@ fn execute(commands: &Vec<String>)
     }
 }
 
+fn print_usage()
+{
+    println!("Usage: vex [options] \"some command\"");
+    println!("Options:");
+    println!("    --dry       - Output commands but don't execute them");
+    println!("    --start=\"<\" - Customize pattern start character");
+    println!("    --stop=\">\"  - Customize pattern stop character");
+    println!("    --sep=\"|\"   - Customize pattern separator");
+}
+
 fn main()
 {
-    let args: Vec<String> = env::args().skip(1).collect();
+    // Default options
+    let mut dry_run: bool = false;
+    let mut pattern_start = '[';
+    let mut pattern_stop = ']';
+    let mut pattern_separator = ',';
+
+    // Leftover arguments after parsing options
+    let mut args: Vec<String> = Vec::new();
+
+    for arg in env::args().skip(1)
+    {
+        // Treat arguments that don't start with "--" as the command to run
+        if !arg.starts_with("--")
+        {
+            args.push(arg);
+            continue;
+        }
+
+        // Get the name out of the "--name=value" pattern
+        let mut it = arg.chars().skip(2);
+        let name: String = it.by_ref().take_while(|&a| a != '=').collect();
+
+        // Process flags (no "=value" part)
+        if name == "dry"
+        {
+            dry_run = true;
+            continue;
+        }
+
+        // Get the value from the argument
+        let value: String = it.collect();
+
+        if value.len() != 1
+        {
+            print_usage();
+            return;
+        }
+
+        let value_char = value.chars().next().unwrap();
+
+        // Assign argument values to their proper variables
+        match name.as_ref()
+        {
+            "start" => pattern_start = value_char,
+            "stop" => pattern_stop = value_char,
+            "sep" => pattern_separator = value_char,
+            _ =>
+            {
+                print_usage();
+                return;
+            },
+        }
+    }
 
     if args.len() != 1
     {
-        println!("Usage: vex \"some command\"");
+        print_usage();
         return;
     }
 
     // Raw command pattern to process
     let ref raw = args[0];
-
-    let pattern_start = '[';
-    let pattern_stop = ']';
-    let pattern_separator = ',';
 
     // Static parts of the command pattern
     let mut parts: Vec<String> = Vec::new();
@@ -162,10 +225,12 @@ fn main()
         parts.push(part);
     }
 
-    let base: Vec<String> = Vec::new();
-    let permutations = permute(&patterns, 0, &base);
+    if patterns.len() == 0
+    {
+        println!("No patterns detected. Exiting.");
+        return;
+    }
 
-    let commands = render(&parts, &permutations);
-
-    execute(&commands);
+    let commands = render(&parts, &permute(&patterns, 0, &Vec::new()));
+    execute(&commands, dry_run);
 }
