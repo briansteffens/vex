@@ -29,6 +29,10 @@ iptables -A OUTPUT -p tcp --dport 80 -j ACCEPT
 iptables -A OUTPUT -p tcp --dport 443 -j ACCEPT
 ```
 
+# Packages
+
+This program is on the AUR at https://aur.archlinux.org/packages/vex/
+
 # Compiling from source
 
 You'll need git to download the source and rust and cargo to compile. On Arch:
