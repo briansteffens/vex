@@ -2,10 +2,14 @@ use std::process::{Command, Stdio};
 use std::env;
 
 // Recursively calculate all unique combinations of patterns
-fn permute(patterns: &Vec<Vec<String>>, 
-           index: usize, 
-           base: &Vec<String>)
-           -> Vec<Vec<String>>
+fn permute(patterns: &Vec<Vec<String>>) -> Vec<Vec<String>>
+{
+  // Bootstrap recursion
+  return _permute(patterns, 0, &Vec::new());
+}
+
+fn _permute(patterns: &Vec<Vec<String>>, index: usize, base: &Vec<String>)
+    -> Vec<Vec<String>>
 {
     let mut ret: Vec<Vec<String>> = Vec::new();
 
@@ -18,7 +22,7 @@ fn permute(patterns: &Vec<Vec<String>>,
         if index < patterns.len() - 1
         {
             // Continue recursion
-            for res in permute(&patterns, index + 1, &new_base)
+            for res in _permute(&patterns, index + 1, &new_base)
             {
                 ret.push(res);
             }
@@ -28,6 +32,36 @@ fn permute(patterns: &Vec<Vec<String>>,
             // Deepest level of recursion
             ret.push(new_base);
         }
+    }
+
+    return ret;
+}
+
+// Calculate sequences of patterns
+fn sequences(patterns: &Vec<Vec<String>>) -> Vec<Vec<String>>
+{
+    let mut ret: Vec<Vec<String>> = Vec::new();
+
+    let sequences = patterns[0].len();
+
+    for i in 1..patterns.len()
+    {
+        if patterns[i].len() != sequences
+        {
+            panic!("Inconsistent options across patterns");
+        }
+    }
+
+    for i in 0..sequences
+    {
+        let mut seq: Vec<String> = Vec::new();
+
+        for pattern in patterns
+        {
+            seq.push(pattern[i].clone());
+        }
+
+        ret.push(seq);
     }
 
     return ret;
@@ -98,6 +132,8 @@ fn print_usage()
     println!("    --start=\"<\" - Customize pattern start character");
     println!("    --stop=\">\"  - Customize pattern stop character");
     println!("    --sep=\"|\"   - Customize pattern separator");
+    println!("    --seq       - Process values sequentially instead of");
+    println!("                  computing all permutations");
 }
 
 fn main()
@@ -107,6 +143,7 @@ fn main()
     let mut pattern_start = '[';
     let mut pattern_stop = ']';
     let mut pattern_separator = ',';
+    let mut sequential: bool = false;
 
     // Leftover arguments after parsing options
     let mut args: Vec<String> = Vec::new();
@@ -128,6 +165,11 @@ fn main()
         if name == "dry"
         {
             dry_run = true;
+            continue;
+        }
+        else if name == "seq"
+        {
+            sequential = true;
             continue;
         }
 
@@ -231,6 +273,11 @@ fn main()
         return;
     }
 
-    let commands = render(&parts, &permute(&patterns, 0, &Vec::new()));
+    let permutations = match sequential {
+      false => permute(&patterns),
+      true => sequences(&patterns),
+    };
+
+    let commands = render(&parts, &permutations);
     execute(&commands, dry_run);
 }
