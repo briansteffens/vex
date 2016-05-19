@@ -93,11 +93,14 @@ fn render(parts: &Vec<String>, permutations: &Vec<Vec<String>>) -> Vec<String>
 }
 
 // Execute a list of commands
-fn execute(commands: &Vec<String>, dry_run: bool)
+fn execute(commands: &Vec<String>, dry_run: bool, verbose: bool)
 {
     for command in commands
     {
-        println!("vex: {}", command);
+        if verbose || dry_run
+        {
+            println!("vex: {}", command);
+        }
 
         if dry_run
         {
@@ -129,6 +132,7 @@ fn print_usage()
     println!("Usage: vex [options] \"some command\"");
     println!("Options:");
     println!("    --dry       - Output commands but don't execute them");
+    println!("    --verbose   - Output commands as they're run");
     println!("    --start=\"<\" - Customize pattern start character");
     println!("    --stop=\">\"  - Customize pattern stop character");
     println!("    --sep=\"|\"   - Customize pattern separator");
@@ -140,6 +144,7 @@ fn main()
 {
     // Default options
     let mut dry_run: bool = false;
+    let mut verbose: bool = false;
     let mut pattern_start = '[';
     let mut pattern_stop = ']';
     let mut pattern_separator = ',';
@@ -170,6 +175,11 @@ fn main()
         else if name == "seq"
         {
             sequential = true;
+            continue;
+        }
+        else if name == "verbose"
+        {
+            verbose = true;
             continue;
         }
 
@@ -279,5 +289,5 @@ fn main()
     };
 
     let commands = render(&parts, &permutations);
-    execute(&commands, dry_run);
+    execute(&commands, dry_run, verbose);
 }
